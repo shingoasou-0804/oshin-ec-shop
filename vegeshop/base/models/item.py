@@ -13,6 +13,14 @@ def upload_image(instance, filename):
     return os.path.join("static", "items", item_id, filename)
 
 
+class Category(models.Mode):
+    slug = models.CharField(max_length=32, primary_key=True)
+    name = models.CharField(max_length=32)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Item(models.Model):
     id = models.CharField(
         default=create_id,
@@ -32,6 +40,12 @@ class Item(models.Model):
         default="",
         blank=True,
         upload_to=upload_image
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
 
     def __str__(self) -> str:
