@@ -13,7 +13,15 @@ def upload_image(instance, filename):
     return os.path.join("static", "items", item_id, filename)
 
 
-class Category(models.Mode):
+class Tag(models.Model):
+    slug = models.CharField(max_length=32, primary_key=True)
+    name = models.CharField(max_length=32)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Category(models.Model):
     slug = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=32)
 
@@ -47,6 +55,7 @@ class Item(models.Model):
         null=True,
         blank=True
     )
+    tags = models.ManyToManyField(Tag)
 
     def __str__(self) -> str:
         return self.name
