@@ -58,4 +58,4 @@ class Item(models.Model):
     tags = models.ManyToManyField(Tag)
 
     def __str__(self) -> str:
-        return self.name
+        return f"{self.name} 値段: {self.price} 売上個数: {self.sold_count} 作成日: {str(self.created_at)}"
