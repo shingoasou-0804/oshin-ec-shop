@@ -21,5 +21,6 @@ from base import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("items/<str:pk>/", views.ItemDetailView.as_view()),
     path("", views.IndexListView.as_view()),
 ]
