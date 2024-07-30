@@ -25,5 +25,8 @@ urlpatterns = [
     path("cart/add/", views.AddCartView.as_view()),
     path("cart/", views.CartListView.as_view()),
     path("items/<str:pk>/", views.ItemDetailView.as_view()),
+    path("pay/checkout/", views.PayWithStripe.as_view()),
+    path("pay/success/", views.PaySuccessView.as_view()),
+    path("pay/cancel/", views.PayCancelView.as_view()),
     path("", views.IndexListView.as_view()),
 ]
