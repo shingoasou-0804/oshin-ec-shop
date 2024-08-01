@@ -54,3 +54,27 @@ class User(AbstractBaseUser):
     @property
     def is_staff(self):
         return self.is_admin
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(
+        User, primary_key=True, on_delete=models.CASCADE
+    )
+    name = models.CharField(default='', blank=True, max_length=50)
+    zipcode = models.CharField(default='', blank=True, max_length=8)
+    prefecture = models.CharField(default='', blank=True, max_length=50)
+    city = models.CharField(default='', blank=True, max_length=50)
+    address1 = models.CharField(default='', blank=True, max_length=50)
+    address2 = models.CharField(default='', blank=True, max_length=50)
+    tel = models.CharField(default='', blank=True, max_length=15)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+@receiver(post_save, sender=User)
+def create_onetoone(sender, **kwargs):
+    if kwargs['created']:
+        Profile.objects.create(user=kwargs['instance'])
