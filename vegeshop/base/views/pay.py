@@ -46,9 +46,26 @@ def create_line_item(unit_amount, name, quantity):
     }
 
 
+def check_profile_filled(profile):
+    if profile.name is None or profile.name == '':
+        return False
+    elif profile.zipcode is None or profile.zipcode == '':
+        return False
+    elif profile.prefecture is None or profile.prefecture == '':
+        return False
+    elif profile.city is None or profile.city == '':
+        return False
+    elif profile.address1 is None or profile.address1 == '':
+        return False
+    return True
+
+
 class PayWithStripe(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
+        if not check_profile_filled(request.user.profile):
+            return redirect('/profile/')
+
         cart = request.session.get('cart', None)
         if cart is None or len(cart) == 0:
             return redirect('/')
