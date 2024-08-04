@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect
 from django.views.generic import View, TemplateView
 from django.conf import settings
@@ -17,7 +18,7 @@ tax_rate = stripe.TaxRate.create(
 )
 
 
-class PaySuccessView(TemplateView):
+class PaySuccessView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/success.html'
 
     def get(self, request, *args, **kwargs):
@@ -26,9 +27,9 @@ class PaySuccessView(TemplateView):
         return super().get(request, *args, **kwargs)
 
 
-class PayCancelView(TemplateView):
+class PayCancelView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/cancel.html'
- 
+
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
@@ -45,20 +46,20 @@ def create_line_item(unit_amount, name, quantity):
     }
 
 
-class PayWithStripe(View):
- 
+class PayWithStripe(LoginRequiredMixin, View):
+
     def post(self, request, *args, **kwargs):
         cart = request.session.get('cart', None)
         if cart is None or len(cart) == 0:
             return redirect('/')
- 
+
         line_items = []
         for item_pk, quantity in cart['items'].items():
             item = Item.objects.get(pk=item_pk)
             line_item = create_line_item(
                 item.price, item.name, quantity)
             line_items.append(line_item)
- 
+
         checkout_session = stripe.checkout.Session.create(
             # customer_email=request.user.email,
             payment_method_types=['card'],
