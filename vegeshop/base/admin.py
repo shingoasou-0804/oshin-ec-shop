@@ -41,4 +41,3 @@ admin.site.register(Tag)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Order)
 admin.site.unregister(Group)
-
