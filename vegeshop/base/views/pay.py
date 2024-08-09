@@ -1,9 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core import serializers
 from django.shortcuts import redirect
 from django.views.generic import View, TemplateView
 from django.conf import settings
-from base.models import Item
+from base.models import Item, Order
 
+import json
 import stripe
 
 
@@ -22,6 +24,12 @@ class PaySuccessView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/success.html'
 
     def get(self, request, *args, **kwargs):
+        order = Order.objects.filter(
+            user=request.user
+        ).order_by('-created_at')[0]
+        order.is_confirmed = True
+        order.save()
+
         del request.session['cart']
 
         return super().get(request, *args, **kwargs)
@@ -31,6 +39,18 @@ class PayCancelView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/cancel.html'
 
     def get(self, request, *args, **kwargs):
+        order = Order.objects.filter(
+            user=request.user).order_by('-created_at')[0]
+
+        for elem in json.loads(order.items):
+            item = Item.objects.get(pk=elem['pk'])
+            item.sold_count -= elem['quantity']
+            item.stock += elem['quantity']
+            item.save()
+
+        if not order.is_confirmed:
+            order.delete()
+
         return super().get(request, *args, **kwargs)
 
 
@@ -70,6 +90,7 @@ class PayWithStripe(LoginRequiredMixin, View):
         if cart is None or len(cart) == 0:
             return redirect('/')
 
+        items = []
         line_items = []
         for item_pk, quantity in cart['items'].items():
             item = Item.objects.get(pk=item_pk)
@@ -77,8 +98,29 @@ class PayWithStripe(LoginRequiredMixin, View):
                 item.price, item.name, quantity)
             line_items.append(line_item)
 
+            items.append({
+                'pk': item.pk,
+                'name': item.name,
+                'image': str(item.image),
+                'price': item.price,
+                'quantity': quantity,
+            })
+
+            item.stock -= quantity
+            item.sold_count += quantity
+            item.save()
+
+        Order.objects.create(
+            user=request.user,
+            uid=request.user.pk,
+            items=json.dumps(items),
+            shipping=serializers.serialize("json", [request.user.profile]),
+            amount=cart["total"],
+            tax_included=cart["tax_included_total"]
+        )
+
         checkout_session = stripe.checkout.Session.create(
-            # customer_email=request.user.email,
+            customer_email=request.user.email,
             payment_method_types=['card'],
             line_items=line_items,
             mode='payment',
