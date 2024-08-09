@@ -27,6 +27,8 @@ urlpatterns = [
     path("signup/", views.SignUpView.as_view()),
     path("account/", views.AccountUpdateView.as_view()),
     path("profile/", views.ProfileUpdateView.as_view()),
+    path('orders/<str:pk>/', views.OrderDetailView.as_view()),
+    path('orders/', views.OrderIndexView.as_view()),
     path("cart/remove/<str:pk>/", views.remove_from_cart),
     path("cart/add/", views.AddCartView.as_view()),
     path("cart/", views.CartListView.as_view()),
