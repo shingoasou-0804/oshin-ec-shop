@@ -3,6 +3,7 @@ from django.core import serializers
 from django.shortcuts import redirect
 from django.views.generic import View, TemplateView
 from django.conf import settings
+from django.contrib import messages
 from base.models import Item, Order
 
 import json
@@ -84,10 +85,12 @@ class PayWithStripe(LoginRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         if not check_profile_filled(request.user.profile):
+            messages.error(request, '配送のためプロフィールを埋めてください。')
             return redirect('/profile/')
 
         cart = request.session.get('cart', None)
         if cart is None or len(cart) == 0:
+            messages.error(request, 'カートが空です。')
             return redirect('/')
 
         items = []
