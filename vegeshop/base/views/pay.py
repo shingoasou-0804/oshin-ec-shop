@@ -49,22 +49,16 @@ class PayCancelView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/cancel.html'
 
     def get(self, request, *args, **kwargs):
-        order_id = request.GET.get('order_id')
-        orders = Order.objects.filter(user=request.user, id=order_id)
+        orders = Order.objects.filter(user=request.user, is_confirmed=False)
 
-        if len(orders) != 1:
-            return super().get(request, *args, **kwargs)
+        for order in orders:
+            for elem in json.loads(order.items):
+                item = Item.objects.get(pk=elem['pk'])
+                item.sold_count -= elem['quantity']
+                item.stock += elem['quantity']
+                item.save()
 
-        order = orders[0]
-
-        for elem in json.loads(order.items):
-            item = Item.objects.get(pk=elem['pk'])
-            item.sold_count -= elem['quantity']
-            item.stock += elem['quantity']
-            item.save()
-
-        if not order.is_confirmed:
-            order.delete()
+        orders.delete()
 
         return super().get(request, *args, **kwargs)
 
@@ -142,7 +136,7 @@ class PayWithStripe(LoginRequiredMixin, View):
             line_items=line_items,
             mode='payment',
             success_url=f'{settings.MY_URL}/pay/success/?order_id={order.pk}',
-            cancel_url=f'{settings.MY_URL}/pay/cancel/?order_id={order.pk}',
+            cancel_url=f'{settings.MY_URL}/pay/cancel/',
 
         )
         return redirect(checkout_session.url)
