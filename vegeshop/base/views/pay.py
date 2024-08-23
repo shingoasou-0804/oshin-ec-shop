@@ -25,13 +25,22 @@ class PaySuccessView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/success.html'
 
     def get(self, request, *args, **kwargs):
-        order = Order.objects.filter(
-            user=request.user
-        ).order_by('-created_at')[0]
+        order_id = request.GET.get('order_id')
+        orders = Order.objects.filter(user=request.user, id=order_id)
+
+        if len(orders) != 1:
+            return super().get(request, *args, **kwargs)
+
+        order = orders[0]
+
+        if order.is_confirmed:
+            return super().get(request, *args, **kwargs)
+
         order.is_confirmed = True
         order.save()
 
-        del request.session['cart']
+        if 'cart' in request.session:
+            del request.session['cart']
 
         return super().get(request, *args, **kwargs)
 
@@ -40,17 +49,16 @@ class PayCancelView(LoginRequiredMixin, TemplateView):
     template_name = 'pages/cancel.html'
 
     def get(self, request, *args, **kwargs):
-        order = Order.objects.filter(
-            user=request.user).order_by('-created_at')[0]
+        orders = Order.objects.filter(user=request.user, is_confirmed=False)
 
-        for elem in json.loads(order.items):
-            item = Item.objects.get(pk=elem['pk'])
-            item.sold_count -= elem['quantity']
-            item.stock += elem['quantity']
-            item.save()
+        for order in orders:
+            for elem in json.loads(order.items):
+                item = Item.objects.get(pk=elem['pk'])
+                item.sold_count -= elem['quantity']
+                item.stock += elem['quantity']
+                item.save()
 
-        if not order.is_confirmed:
-            order.delete()
+        orders.delete()
 
         return super().get(request, *args, **kwargs)
 
@@ -113,7 +121,7 @@ class PayWithStripe(LoginRequiredMixin, View):
             item.sold_count += quantity
             item.save()
 
-        Order.objects.create(
+        order = Order.objects.create(
             user=request.user,
             uid=request.user.pk,
             items=json.dumps(items),
@@ -127,7 +135,8 @@ class PayWithStripe(LoginRequiredMixin, View):
             payment_method_types=['card'],
             line_items=line_items,
             mode='payment',
-            success_url=f'{settings.MY_URL}/pay/success/',
+            success_url=f'{settings.MY_URL}/pay/success/?order_id={order.pk}',
             cancel_url=f'{settings.MY_URL}/pay/cancel/',
+
         )
         return redirect(checkout_session.url)
